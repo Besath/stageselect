@@ -1,6 +1,15 @@
 #include <sourcemod>
 #include <sdktools>
 
+public Plugin myinfo =
+{
+	name = "Stage selector",
+	author = "Besath",
+	description = "Teleport to various stages on the map",
+	version = SOURCEMOD_VERSION,
+	url = "https://bitbucket.org/besath/stage-select/"
+};
+
 new String:currentMap[32];
 Database g_hDatabase;
 
