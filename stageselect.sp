@@ -146,8 +146,8 @@ public SQL_TP_Callback(Database db, DBResultSet results, const char[] error, any
 		angles[0] = results.FetchFloat(3);
 		angles[1] = results.FetchFloat(4);
 		angles[2] = results.FetchFloat(5);
-		FakeClientCommand(client, "stoptimer");
 		TeleportEntity(client, position, angles, NULL_VECTOR);
+		FakeClientCommandEx(client, "stoptimer");
 	}
 	else
 	{
