@@ -7,7 +7,7 @@ Database g_hDatabase;
 #define db_CreateStagesTable "CREATE table IF NOT EXISTS stages (id INTEGER PRIMARY KEY, mapname VARCHAR(32) NOT NULL, stagename VARCHAR(32) NOT NULL, origin_x FLOAT NOT NULL, origin_y FLOAT NOT NULL, origin_z FLOAT NOT NULL, angles_x FLOAT NOT NULL, angles_y FLOAT NOT NULL, angles_z FLOAT NOT NULL);"
 #define db_InsertStage "INSERT INTO stages (mapname, stagename, origin_x, origin_y, origin_z, angles_x, angles_y, angles_z) VALUES ('%s', '%s', %f, %f, %f, %f, %f, %f);"
 #define db_GetStageNames "SELECT stagename FROM stages WHERE mapname = '%s';"
-#define db_GetTeleportLocation "SELECT origin_x, origin_y, origin_z, angles_x, angles_y, angles_z FROM stages WHERE stagename = '%s';"
+#define db_GetTeleportLocation "SELECT origin_x, origin_y, origin_z, angles_x, angles_y, angles_z FROM stages WHERE mapname = '%s' AND stagename = '%s';"
 
 public OnPluginStart()
 {
@@ -107,7 +107,7 @@ public int MenuHandler(Menu menu, MenuAction action, int param1, int param2)
 			char info[32];
 			menu.GetItem(param2, info, sizeof(info));
 			decl String:tpQuery[256];
-			g_hDatabase.Format(tpQuery, sizeof(tpQuery), db_GetTeleportLocation, info);
+			g_hDatabase.Format(tpQuery, sizeof(tpQuery), db_GetTeleportLocation, currentMap, info);
 			g_hDatabase.Query(SQL_TP_Callback, tpQuery, param1);
 		}
 		case MenuAction_Cancel:
