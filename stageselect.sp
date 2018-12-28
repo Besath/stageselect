@@ -13,8 +13,8 @@ public Plugin myinfo =
 new String:currentMap[32];
 Database g_hDatabase;
 
-#define db_CreateStagesTable "CREATE table IF NOT EXISTS stages (id INTEGER PRIMARY KEY, mapname VARCHAR(32) NOT NULL, stagename VARCHAR(32) NOT NULL, origin_x FLOAT NOT NULL, origin_y FLOAT NOT NULL, origin_z FLOAT NOT NULL, angles_x FLOAT NOT NULL, angles_y FLOAT NOT NULL, angles_z FLOAT NOT NULL);"
-#define db_InsertStage "INSERT INTO stages (mapname, stagename, origin_x, origin_y, origin_z, angles_x, angles_y, angles_z) VALUES ('%s', '%s', %f, %f, %f, %f, %f, %f);"
+#define db_CreateStagesTable "CREATE table IF NOT EXISTS stages (mapname VARCHAR(32) NOT NULL, stagename VARCHAR(32) NOT NULL, origin_x FLOAT NOT NULL, origin_y FLOAT NOT NULL, origin_z FLOAT NOT NULL, angles_x FLOAT NOT NULL, angles_y FLOAT NOT NULL, angles_z FLOAT NOT NULL, PRIMARY KEY (mapname, stagename));"
+#define db_InsertStage "INSERT OR REPLACE INTO stages (mapname, stagename, origin_x, origin_y, origin_z, angles_x, angles_y, angles_z) VALUES ('%s', '%s', %f, %f, %f, %f, %f, %f);"
 #define db_GetStageNames "SELECT stagename FROM stages WHERE mapname = '%s';"
 #define db_GetTeleportLocation "SELECT origin_x, origin_y, origin_z, angles_x, angles_y, angles_z FROM stages WHERE mapname = '%s' AND stagename = '%s';"
 
@@ -40,7 +40,7 @@ public void OnConnect(Database db, const char[] error, any data)
 	}
 
 	g_hDatabase = db;
-	char sQuery[280];
+	char sQuery[300]; // TODO change array size to a multiple of 8
 	g_hDatabase.Format(sQuery, sizeof(sQuery), db_CreateStagesTable);
 	g_hDatabase.Query(SQLCallback, sQuery);
 }
