@@ -40,7 +40,7 @@ public void OnConnect(Database db, const char[] error, any data)
 	}
 
 	g_hDatabase = db;
-	char sQuery[300]; // TODO change array size to a multiple of 8
+	char sQuery[304];
 	g_hDatabase.Format(sQuery, sizeof(sQuery), db_CreateStagesTable);
 	g_hDatabase.Query(SQLCallback, sQuery);
 }
