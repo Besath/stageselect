@@ -13,14 +13,16 @@ public Plugin myinfo =
 new String:currentMap[32];
 Database g_hDatabase;
 
-#define db_CreateStagesTable "CREATE table IF NOT EXISTS stages (mapname VARCHAR(32) NOT NULL, stagename VARCHAR(32) NOT NULL, origin_x FLOAT NOT NULL, origin_y FLOAT NOT NULL, origin_z FLOAT NOT NULL, angles_x FLOAT NOT NULL, angles_y FLOAT NOT NULL, angles_z FLOAT NOT NULL, PRIMARY KEY (mapname, stagename));"
+#define db_CreateStagesTable "CREATE table IF NOT EXISTS stages (mapname VARCHAR(128) NOT NULL, stagename VARCHAR(32) NOT NULL, origin_x FLOAT NOT NULL, origin_y FLOAT NOT NULL, origin_z FLOAT NOT NULL, angles_x FLOAT NOT NULL, angles_y FLOAT NOT NULL, angles_z FLOAT NOT NULL, PRIMARY KEY (mapname, stagename));"
 #define db_InsertStage "INSERT OR REPLACE INTO stages (mapname, stagename, origin_x, origin_y, origin_z, angles_x, angles_y, angles_z) VALUES ('%s', '%s', %f, %f, %f, %f, %f, %f);"
+#define db_DeleteStage "DELETE FROM stages WHERE mapname = '%s' AND stagename = '%s';"
 #define db_GetStageNames "SELECT stagename FROM stages WHERE mapname = '%s';"
 #define db_GetTeleportLocation "SELECT origin_x, origin_y, origin_z, angles_x, angles_y, angles_z FROM stages WHERE mapname = '%s' AND stagename = '%s';"
 
 public OnPluginStart()
 {
 	RegAdminCmd("sm_regstage", Command_RegStage, ADMFLAG_GENERIC, "Register stage coordinates");
+	RegAdminCmd("sm_delstage", Command_DelStage, ADMFLAG_GENERIC, "Delete stage from database");
 	RegConsoleCmd("sm_stages", Command_Stages, "Opens a menu that lets you teleport to the selected point on the map");
 	RegConsoleCmd("sm_courses", Command_Stages, "Opens a menu that lets you teleport to the selected point on the map");
 
@@ -76,6 +78,29 @@ public Action Command_RegStage(client, args)
 	GetCmdArgString(arg1, sizeof(arg1));
 	g_hDatabase.Format(stageQuery, sizeof(stageQuery), db_InsertStage, currentMap, arg1, pos[0], pos[1], pos[2], angs[0], angs[1], angs[2]);
 	g_hDatabase.Query(SQLCallback, stageQuery);
+	PrintToChat(client, "Stage %s has been added", arg1);
+	return Plugin_Continue;
+}
+
+public Action Command_DelStage(client, args)
+{
+	if (args < 1)
+	{
+		PrintToChat(client, "Please specify a name of the stage you want to delete");
+		return Plugin_Continue;
+	}
+	if (args > 1)
+	{
+		PrintToChat(client, "Too many arguments");
+		return Plugin_Continue;
+	}
+
+	decl String:arg1[32];
+	decl String:delQuery[PLATFORM_MAX_PATH];
+	GetCmdArgString(arg1, sizeof(arg1));
+	g_hDatabase.Format(delQuery, sizeof(delQuery), db_DeleteStage, currentMap, arg1);
+	g_hDatabase.Query(SQLCallback, delQuery);
+	PrintToChat(client, "Stage %s has been deleted", arg1);
 	return Plugin_Continue;
 }
 
