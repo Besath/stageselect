@@ -10,7 +10,7 @@ public Plugin myinfo =
 	url = "https://bitbucket.org/besath/stage-select/"
 };
 
-new String:currentMap[32];
+char currentMap[32];
 Database g_hDatabase;
 
 #define db_CreateStagesTable "CREATE table IF NOT EXISTS stages (mapname VARCHAR(128) NOT NULL, stagename VARCHAR(32) NOT NULL, origin_x FLOAT NOT NULL, origin_y FLOAT NOT NULL, origin_z FLOAT NOT NULL, angles_x FLOAT NOT NULL, angles_y FLOAT NOT NULL, angles_z FLOAT NOT NULL, PRIMARY KEY (mapname, stagename));"
@@ -69,10 +69,10 @@ public Action Command_RegStage(client, args)
 		return Plugin_Continue;
 	}
 
-	decl Float:pos[3];
-	decl Float:angs[3];
-	decl String:arg1[32];
-	decl String:stageQuery[PLATFORM_MAX_PATH];
+	float pos[3];
+	float angs[3];
+	char arg1[32];
+	char stageQuery[PLATFORM_MAX_PATH];
 	GetClientAbsOrigin(client, pos);
 	GetClientAbsAngles(client, angs);
 	GetCmdArgString(arg1, sizeof(arg1));
@@ -95,8 +95,8 @@ public Action Command_DelStage(client, args)
 		return Plugin_Continue;
 	}
 
-	decl String:arg1[32];
-	decl String:delQuery[PLATFORM_MAX_PATH];
+	char arg1[32];
+	char delQuery[PLATFORM_MAX_PATH];
 	GetCmdArgString(arg1, sizeof(arg1));
 	g_hDatabase.Format(delQuery, sizeof(delQuery), db_DeleteStage, currentMap, arg1);
 	g_hDatabase.Query(SQLCallback, delQuery);
@@ -106,7 +106,7 @@ public Action Command_DelStage(client, args)
 
 public Action Command_Stages(client, args)
 {
-	decl String:sQuery[256];
+	char sQuery[256];
 	g_hDatabase.Format(sQuery, sizeof(sQuery), db_GetStageNames, currentMap);
 	g_hDatabase.Query(SQLMenuCallback, sQuery, GetClientUserId(client));
 }
@@ -117,7 +117,7 @@ public SQLMenuCallback(Database db, DBResultSet results, const char[] error, any
 	{
 		LogError("Query failed: %s", error);
 	}
-	decl String:stage[32];
+	char stage[32];
 	new client = GetClientOfUserId(data);
 	Menu menu = new Menu(MenuHandler, MenuAction_Select|MenuAction_Cancel|MenuAction_End);
 	if (results.HasResults)
@@ -140,7 +140,7 @@ public int MenuHandler(Menu menu, MenuAction action, int param1, int param2)
 		{
 			char info[32];
 			menu.GetItem(param2, info, sizeof(info));
-			decl String:tpQuery[256];
+			char tpQuery[256];
 			g_hDatabase.Format(tpQuery, sizeof(tpQuery), db_GetTeleportLocation, currentMap, info);
 			g_hDatabase.Query(SQL_TP_Callback, tpQuery, param1);
 		}
@@ -160,8 +160,8 @@ public int MenuHandler(Menu menu, MenuAction action, int param1, int param2)
 
 public SQL_TP_Callback(Database db, DBResultSet results, const char[] error, any data)
 {
-	decl Float:position[3];
-	decl Float:angles[3];
+	float position[3];
+	float angles[3];
 	new client = data;
 	if (results.HasResults)
 	{
