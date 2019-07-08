@@ -10,28 +10,25 @@ public Plugin myinfo =
 	url = "https://bitbucket.org/besath/stage-select/"
 };
 
-char currentMap[32];
+char currentMap[256];
 Database g_hDatabase;
 
-#define db_CreateStagesTable "CREATE table IF NOT EXISTS stages (mapname VARCHAR(128) NOT NULL, stagename VARCHAR(32) NOT NULL, origin_x FLOAT NOT NULL, origin_y FLOAT NOT NULL, origin_z FLOAT NOT NULL, angles_x FLOAT NOT NULL, angles_y FLOAT NOT NULL, angles_z FLOAT NOT NULL, PRIMARY KEY (mapname, stagename));"
-#define db_InsertStage "INSERT OR REPLACE INTO stages (mapname, stagename, origin_x, origin_y, origin_z, angles_x, angles_y, angles_z) VALUES ('%s', '%s', %f, %f, %f, %f, %f, %f);"
-#define db_DeleteStage "DELETE FROM stages WHERE mapname = '%s' AND stagename = '%s';"
-#define db_GetStageNames "SELECT stagename FROM stages WHERE mapname = '%s';"
-#define db_GetTeleportLocation "SELECT origin_x, origin_y, origin_z, angles_x, angles_y, angles_z FROM stages WHERE mapname = '%s' AND stagename = '%s';"
+#define db_CreateMapsTable "CREATE TABLE IF NOT EXISTS maps (id INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT, mapname VARCHAR(255) NOT NULL UNIQUE);"
+#define db_CreateCoursesTable "CREATE TABLE IF NOT EXISTS courses (mapid INT NOT NULL, coursename VARCHAR(255) NOT NULL, origin_x FLOAT NOT NULL, origin_y FLOAT NOT NULL, origin_z FLOAT NOT NULL, angles_x FLOAT NOT NULL, angles_y FLOAT NOT NULL, angles_z FLOAT NOT NULL, PRIMARY KEY (mapid, coursename), FOREIGN KEY (mapid) REFERENCES maps(id));"
+#define db_InsertMap "INSERT INTO maps (mapname) VALUES ('%s') ON DUPLICATE KEY UPDATE mapname=VALUES(mapname);"
+#define db_InsertCourse "INSERT INTO courses (mapid, coursename, origin_x, origin_y, origin_z, angles_x, angles_y, angles_z) VALUES ((SELECT id FROM maps WHERE mapname = '%s'), '%s', %f, %f, %f, %f, %f, %f);"
+#define db_DeleteStage "DELETE FROM courses WHERE mapid = (SELECT id FROM maps WHERE mapname = '%s') AND coursename = '%s';"
+#define db_GetStageNames "SELECT coursename FROM courses WHERE mapid = (SELECT id FROM maps WHERE mapname = '%s');"
+#define db_GetTeleportLocation "SELECT origin_x, origin_y, origin_z, angles_x, angles_y, angles_z FROM courses WHERE mapid = (SELECT id FROM maps WHERE mapname = '%s') AND coursename = '%s';"
 
 public OnPluginStart()
 {
 	RegAdminCmd("sm_regstage", Command_RegStage, ADMFLAG_GENERIC, "Register stage coordinates");
 	RegAdminCmd("sm_delstage", Command_DelStage, ADMFLAG_GENERIC, "Delete stage from database");
-	RegConsoleCmd("sm_stages", Command_Stages, "Opens a menu that lets you teleport to the selected point on the map");
-	RegConsoleCmd("sm_courses", Command_Stages, "Opens a menu that lets you teleport to the selected point on the map");
+	RegConsoleCmd("sm_stages", Command_Courses, "Opens a menu that lets you teleport to the selected point on the map");
+	RegConsoleCmd("sm_courses", Command_Courses, "Opens a menu that lets you teleport to the selected point on the map");
 
 	Database.Connect(OnConnect, "stageselect");
-}
-
-public OnMapStart()
-{
-	GetCurrentMap(currentMap, sizeof(currentMap));
 }
 
 public void OnConnect(Database db, const char[] error, any data)
@@ -42,9 +39,29 @@ public void OnConnect(Database db, const char[] error, any data)
 	}
 
 	g_hDatabase = db;
-	char sQuery[304];
-	g_hDatabase.Format(sQuery, sizeof(sQuery), db_CreateStagesTable);
+	CreateTables();
+	RegisterMap();
+}
+
+public void CreateTables()
+{
+	char sQuery[512];
+	g_hDatabase.Format(sQuery, sizeof(sQuery), db_CreateMapsTable);
 	g_hDatabase.Query(SQLCallback, sQuery);
+	g_hDatabase.Format(sQuery, sizeof(sQuery), db_CreateCoursesTable);
+	g_hDatabase.Query(SQLCallback, sQuery);
+}
+
+public void RegisterMap()
+{
+	char sQuery[256];
+	g_hDatabase.Format(sQuery, sizeof(sQuery), db_InsertMap, currentMap);
+	g_hDatabase.Query(SQLCallback, sQuery);
+}
+
+public OnMapStart()
+{
+	GetCurrentMap(currentMap, sizeof(currentMap));
 }
 
 public void SQLCallback(Database db, DBResultSet results, const char[] error, any data)
@@ -72,11 +89,12 @@ public Action Command_RegStage(client, args)
 	float pos[3];
 	float angs[3];
 	char arg1[32];
-	char stageQuery[PLATFORM_MAX_PATH];
+	char stageQuery[512];
 	GetClientAbsOrigin(client, pos);
 	GetClientAbsAngles(client, angs);
 	GetCmdArgString(arg1, sizeof(arg1));
-	g_hDatabase.Format(stageQuery, sizeof(stageQuery), db_InsertStage, currentMap, arg1, pos[0], pos[1], pos[2], angs[0], angs[1], angs[2]);
+	g_hDatabase.Format(stageQuery, sizeof(stageQuery), db_InsertCourse, currentMap, arg1, pos[0], pos[1], pos[2], angs[0], angs[1], angs[2]);
+	PrintToServer(stageQuery);
 	g_hDatabase.Query(SQLCallback, stageQuery);
 	PrintToChat(client, "Stage %s has been added", arg1);
 	return Plugin_Continue;
@@ -104,8 +122,13 @@ public Action Command_DelStage(client, args)
 	return Plugin_Continue;
 }
 
-public Action Command_Stages(client, args)
+public Action Command_Courses(client, args)
 {
+	if(IsClientObserver(client))
+	{
+		PrintToChat(client, "[SM] This command cannot be used while spectating.");
+		return Plugin_Continue;
+	}
 	char sQuery[256];
 	g_hDatabase.Format(sQuery, sizeof(sQuery), db_GetStageNames, currentMap);
 	g_hDatabase.Query(SQLMenuCallback, sQuery, GetClientUserId(client));
@@ -165,6 +188,7 @@ public SQL_TP_Callback(Database db, DBResultSet results, const char[] error, any
 	new client = data;
 	if (results.HasResults)
 	{
+		results.FetchRow();
 		position[0] = results.FetchFloat(0);
 		position[1] = results.FetchFloat(1);
 		position[2] = results.FetchFloat(2);
