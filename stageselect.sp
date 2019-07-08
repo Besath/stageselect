@@ -21,13 +21,12 @@ Database g_hDatabase;
 #define db_GetStageNames "SELECT coursename FROM courses WHERE mapid = (SELECT id FROM maps WHERE mapname = '%s');"
 #define db_GetTeleportLocation "SELECT origin_x, origin_y, origin_z, angles_x, angles_y, angles_z FROM courses WHERE mapid = (SELECT id FROM maps WHERE mapname = '%s') AND coursename = '%s';"
 
-public OnPluginStart()
+public void OnPluginStart()
 {
 	RegAdminCmd("sm_regstage", Command_RegStage, ADMFLAG_GENERIC, "Register stage coordinates");
 	RegAdminCmd("sm_delstage", Command_DelStage, ADMFLAG_GENERIC, "Delete stage from database");
 	RegConsoleCmd("sm_stages", Command_Courses, "Opens a menu that lets you teleport to the selected point on the map");
 	RegConsoleCmd("sm_courses", Command_Courses, "Opens a menu that lets you teleport to the selected point on the map");
-
 	Database.Connect(OnConnect, "stageselect");
 }
 
@@ -52,16 +51,25 @@ public void CreateTables()
 	g_hDatabase.Query(SQLCallback, sQuery);
 }
 
-public void RegisterMap()
+public Action RegisterMap()
 {
-	char sQuery[256];
-	g_hDatabase.Format(sQuery, sizeof(sQuery), db_InsertMap, currentMap);
-	g_hDatabase.Query(SQLCallback, sQuery);
+	if (g_hDatabase == INVALID_HANDLE)
+	{
+		return Plugin_Handled;
+	}
+	else
+	{
+		char sQuery[256];
+		g_hDatabase.Format(sQuery, sizeof(sQuery), db_InsertMap, currentMap);
+		g_hDatabase.Query(SQLCallback, sQuery);
+	}
+	return Plugin_Handled;
 }
 
-public OnMapStart()
+public void OnMapStart()
 {
 	GetCurrentMap(currentMap, sizeof(currentMap));
+	RegisterMap();
 }
 
 public void SQLCallback(Database db, DBResultSet results, const char[] error, any data)
